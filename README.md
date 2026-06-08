@@ -2,11 +2,10 @@
 
 一款轻量、优雅的 macOS 菜单栏番茄工作法计时器，基于 Python 和 [rumps](https://github.com/jaredks/rumps) 构建。
 
-![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/github/v/release/newjokker/PomodoroTimer)
-![Downloads](https://img.shields.io/github/downloads/newjokker/PomodoroTimer/total)
+![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green) ![Arch](https://img.shields.io/badge/arch-arm64-brightgreen)
 
-> **⬇️ [下载最新版](https://github.com/newjokker/PomodoroTimer/raw/main/PomodoroTimer-v1.0.0.dmg)** — 直接下载 DMG 安装包
+
+> **⬇️ [下载最新版 v1.1.0](https://github.com/newjokker/PomodoroTimer/releases)** — 原生 ARM64，支持 Apple Silicon
 
 ---
 
@@ -31,10 +30,12 @@
 - **短休息时长**：5 / 10 / 15 / 20 / 25 / 30 分钟可选
 - **长休息时长**：10 / 15 / 20 / 25 / 30 分钟可选
 - **自动开始休息**：番茄完成后是否自动进入休息倒计时
+- **静音模式**：开启后仅保留通知，不播放提示音
 
 ### 数据统计
-- 记录完成的番茄总数
-- 累计专注时间（分钟 & 小时）
+- 📅 **今日统计**：今日番茄数 + 专注时长
+- 📆 **本周统计**：本周累计番茄数和时长
+- 🏆 **累计统计**：总番茄数、总专注时长（小时）
 - 所有数据持久化，重启不丢失
 
 ### 提醒通知
@@ -92,8 +93,13 @@ python3 make_icon.py
 番茄时钟/
 ├── pomodoro_timer.py    # 主程序 — 菜单栏番茄计时器
 ├── setup.py             # py2app 打包配置
+├── pyproject.toml       # 项目元数据 + py2app 配置
+├── Makefile             # 构建自动化（一键 dmg / release）
 ├── make_icon.py         # 图标生成脚本（纯 Python，无需 PIL）
 ├── icon.icns            # 生成的 macOS 应用图标
+├── BUILD.md             # 详细构建指南（含故障排查）
+├── CHANGELOG.md         # 版本更新日志
+├── releases/            # 历史版本 DMG（已 .gitignore）
 ├── .gitignore
 └── README.md
 ```
@@ -155,20 +161,22 @@ python3 make_icon.py
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| [v1.1.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.1.0) | 2026-06-08 | ARM64 原生、按日统计、静音模式 |
 | [v1.0.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.0.0) | 2026-06-08 | 首发版 |
 
 ---
 
 ## 构建
 
-从源码构建 .app / .dmg，参考 [BUILD.md](BUILD.md)。
+从源码构建 `.app` / `.dmg`，详见 **[BUILD.md](BUILD.md)**。
 
 ```bash
-make install    # 安装依赖
-make app        # 构建 .app
-make dmg        # 构建 DMG
+make dmg        # 一键构建 DMG（自动检查架构、生成图标、打包）
+make app        # 仅构建 .app
 make release    # 打标签 + 构建 DMG
 ```
+
+> ⚠️ **必须使用 ARM64 原生 Python**。Makefile 已内置架构检查，x86_64 Python 会被自动拦截。在 Apple Silicon Mac 上用 x86_64 Python 构建的 App 无法运行（除非安装 Rosetta 2）。
 
 ---
 

@@ -54,7 +54,8 @@ def _create_png_raw(width, height):
     )
 
 
-iconset = '/Volumes/Jokker/Code/番茄时钟/tomato.iconset'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+iconset = os.path.join(SCRIPT_DIR, 'tomato.iconset')
 os.makedirs(iconset, exist_ok=True)
 
 sizes = [16, 32, 64, 128, 256, 512]
@@ -72,6 +73,6 @@ for s in sizes:
                 f.write(_create_png_raw(s * 2, s * 2))
 
 # Convert to .icns using iconutil
-icns_path = '/Volumes/Jokker/Code/番茄时钟/icon.icns'
+icns_path = os.path.join(SCRIPT_DIR, 'icon.icns')
 sp.run(['iconutil', '-c', 'icns', iconset, '-o', icns_path], check=True)
 print(f'✅ 图标已生成: {icns_path}')

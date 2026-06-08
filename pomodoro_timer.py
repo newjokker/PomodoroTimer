@@ -3,10 +3,6 @@
 🍅 番茄时钟 - macOS 菜单栏 Pomodoro Timer
 基于 rumps 实现的标准番茄工作法计时器
 
-__version__ = "1.0.0"
-__app_name__ = "🍅 番茄时钟"
-__repo_url__ = "https://github.com/newjokker/PomodoroTimer"
-
 用法:
     chmod +x pomodoro_timer.py
     python3 pomodoro_timer.py
@@ -17,14 +13,22 @@ __repo_url__ = "https://github.com/newjokker/PomodoroTimer"
     - 可自定义工作/短休息/长休息时间
     - 暂停/继续/跳过
     - 完成时系统通知 + 提示音
-    - 统计数据追踪
+    - 统计数据追踪（每日/每周/累计）
+    - 静音模式
     - 设置持久化（重启后保留）
 """
+
+# ── 版本信息 ──
+__version__ = "1.1.0"
+__app_name__ = "🍅 番茄时钟"
+__repo_url__ = "https://github.com/newjokker/PomodoroTimer"
 
 import rumps
 import subprocess
 import json
 import os
+import datetime
+import tempfile
 
 # ═══════════════════════════════════════
 #  默认配置
@@ -58,6 +62,8 @@ class PomodoroTimer(rumps.App):
         self.completed_pomodoros = config.get("completed_pomodoros", 0)
         self.total_focus_minutes = config.get("total_focus_minutes", 0)
         self.auto_break = config.get("auto_break", True)
+        self.mute = config.get("mute", False)
+        self._daily_stats = config.get("daily", {})
 
         # ── 更新菜单栏标题（反映加载后的配置值） ──
         self.title = f"🍅 {self._fmt()}"
@@ -80,20 +86,31 @@ class PomodoroTimer(rumps.App):
             return {}
 
     def _save_config(self):
-        """将当前配置写入 JSON 文件"""
+        """将当前配置原子写入 JSON 文件（先写临时文件再 rename，防止崩溃损坏）"""
         config = {
             "work_minutes": self.work_minutes,
             "short_break_minutes": self.short_break_minutes,
             "long_break_minutes": self.long_break_minutes,
             "auto_break": self.auto_break,
+            "mute": self.mute,
             "completed_pomodoros": self.completed_pomodoros,
             "total_focus_minutes": self.total_focus_minutes,
+            "daily": self._daily_stats,
         }
         try:
-            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump(config, f, indent=2, ensure_ascii=False)
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", suffix=".json",
+                dir=CONFIG_DIR, delete=False,
+            )
+            try:
+                json.dump(config, tmp, indent=2, ensure_ascii=False)
+                tmp.flush()
+                os.fsync(tmp.fileno())
+            finally:
+                tmp.close()
+            os.replace(tmp.name, CONFIG_FILE)  # 原子 rename
         except OSError:
-            pass  # 静默处理写入失败
+            pass
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     #  菜单构建
@@ -111,27 +128,21 @@ class PomodoroTimer(rumps.App):
         # 工作时长
         self.work_submenu = rumps.MenuItem("📝 工作时长")
         self.setup_duration_submenu(
-            self.work_submenu,
-            self.work_minutes,
-            self._on_set_work,
+            self.work_submenu, self.work_minutes, "work_minutes",
             [15, 20, 25, 30, 35, 40, 45, 50, 60],
         )
 
         # 短休息时长
         self.short_break_submenu = rumps.MenuItem("☕ 短休息时长")
         self.setup_duration_submenu(
-            self.short_break_submenu,
-            self.short_break_minutes,
-            self._on_set_short_break,
+            self.short_break_submenu, self.short_break_minutes, "short_break_minutes",
             [5, 10, 15, 20, 25, 30],
         )
 
         # 长休息时长
         self.long_break_submenu = rumps.MenuItem("🌿 长休息时长")
         self.setup_duration_submenu(
-            self.long_break_submenu,
-            self.long_break_minutes,
-            self._on_set_long_break,
+            self.long_break_submenu, self.long_break_minutes, "long_break_minutes",
             [10, 15, 20, 25, 30],
         )
 
@@ -143,6 +154,11 @@ class PomodoroTimer(rumps.App):
             callback=self.toggle_auto_break,
         )
         self.settings_menu.add(self.auto_break_item)
+        self.mute_item = rumps.MenuItem(
+            f"🔇 静音模式 {'✓' if self.mute else '✗'}",
+            callback=self.toggle_mute,
+        )
+        self.settings_menu.add(self.mute_item)
 
         # ── 组装主菜单 ──
         self.menu = [
@@ -158,11 +174,13 @@ class PomodoroTimer(rumps.App):
             rumps.MenuItem("🚪 退出", callback=self.quit_app),
         ]
 
-    def setup_duration_submenu(self, parent, current_value, callback, values):
+    def setup_duration_submenu(self, parent, current_value, attr_name, values):
         """为子菜单添加时长选项列表"""
         for v in values:
-            item = rumps.MenuItem(f"{v} 分钟", callback=callback)
+            item = rumps.MenuItem(f"{v} 分钟", callback=self._on_set_duration)
             item.state = (v == current_value)
+            item._setting_attr = attr_name
+            item._setting_submenu = parent
             parent.add(item)
 
     # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -208,21 +226,30 @@ class PomodoroTimer(rumps.App):
         """当前段结束时触发"""
         if self.state in ("WORK", "WORK_PAUSE"):
             self.completed_pomodoros += 1
-            self.total_focus_minutes += self.work_minutes
+            # 按实际完成时间累加，而非总是加满 work_minutes（修复跳过时统计虚高）
+            elapsed_seconds = self.work_minutes * 60 - self.seconds_left
+            actual_minutes = max(0, round(elapsed_seconds / 60))
+            self.total_focus_minutes += actual_minutes
+            # 每日统计
+            today = datetime.date.today().isoformat()
+            daily = self._daily_stats.setdefault(today, {"pomodoros": 0, "minutes": 0})
+            daily["pomodoros"] += 1
+            daily["minutes"] += actual_minutes
             self._notify("🎉 番茄完成！", f"已完成 {self.completed_pomodoros} 个番茄")
-            self._save_config()  # 完成一个番茄后保存统计
+            self._save_config()
             self._start_break()
         else:
             self._notify("☕ 休息结束", "准备开始新的番茄吧！")
             self._start_work()
 
     def _notify(self, title, subtitle):
-        """发送系统通知 + 音效"""
-        rumps.notification(title=title, subtitle=subtitle, message="", sound=True)
-        subprocess.run(
-            ["afplay", "/System/Library/Sounds/Ping.aiff"],
-            capture_output=True,
-        )
+        """发送系统通知（静音模式下跳过音效）"""
+        rumps.notification(title=title, subtitle=subtitle, message="", sound=not self.mute)
+        if not self.mute:
+            subprocess.run(
+                ["afplay", "/System/Library/Sounds/Ping.aiff"],
+                capture_output=True,
+            )
 
     def _start_work(self):
         """开始工作时段"""
@@ -282,35 +309,20 @@ class PomodoroTimer(rumps.App):
         self.timer.stop()
         self._on_complete()
 
-    def _on_set_work(self, sender):
-        """设置工作时长"""
-        for item in self.work_submenu.values():
+    def _on_set_duration(self, sender):
+        """设置时长（通用回调，通过 MenuItem 自定义属性识别是哪个设置项）"""
+        submenu = sender._setting_submenu
+        attr = sender._setting_attr
+        for item in submenu.values():
             if isinstance(item, rumps.MenuItem):
                 item.state = False
         sender.state = True
-        self.work_minutes = int(sender.title.split()[0])
-        # 空闲状态时立即刷新倒计时显示；运行中只保存值，不影响当前计时
-        if self.state == "IDLE":
+        value = int(sender.title.split()[0])
+        setattr(self, attr, value)
+        # 修改工作时长且处于空闲状态 → 立即刷新倒计时显示
+        if attr == "work_minutes" and self.state == "IDLE":
             self.seconds_left = self.work_minutes * 60
-        self._update_title()
-        self._save_config()
-
-    def _on_set_short_break(self, sender):
-        """设置短休息时长"""
-        for item in self.short_break_submenu.values():
-            if isinstance(item, rumps.MenuItem):
-                item.state = False
-        sender.state = True
-        self.short_break_minutes = int(sender.title.split()[0])
-        self._save_config()
-
-    def _on_set_long_break(self, sender):
-        """设置长休息时长"""
-        for item in self.long_break_submenu.values():
-            if isinstance(item, rumps.MenuItem):
-                item.state = False
-        sender.state = True
-        self.long_break_minutes = int(sender.title.split()[0])
+            self._update_title()
         self._save_config()
 
     def toggle_auto_break(self, sender):
@@ -319,15 +331,45 @@ class PomodoroTimer(rumps.App):
         sender.title = f"⏰ 自动开始休息 {'✓' if self.auto_break else '✗'}"
         self._save_config()
 
+    def toggle_mute(self, sender):
+        """切换静音模式"""
+        self.mute = not self.mute
+        sender.title = f"🔇 静音模式 {'✓' if self.mute else '✗'}"
+        self._save_config()
+
+    def _get_week_stats(self):
+        """计算本周（周一至周日）的统计数据"""
+        today = datetime.date.today()
+        monday = today - datetime.timedelta(days=today.weekday())
+        week_pomos = 0
+        week_minutes = 0
+        for d in range(7):
+            day = (monday + datetime.timedelta(days=d)).isoformat()
+            if day in self._daily_stats:
+                week_pomos += self._daily_stats[day]["pomodoros"]
+                week_minutes += self._daily_stats[day]["minutes"]
+        return week_pomos, week_minutes
+
     def show_stats(self, _):
-        """显示统计数据"""
-        hours = self.total_focus_minutes / 60
+        """显示统计数据（今日 / 本周 / 累计）"""
+        today = datetime.date.today().isoformat()
+        today_stats = self._daily_stats.get(today, {"pomodoros": 0, "minutes": 0})
+        week_pomos, week_minutes = self._get_week_stats()
+        total_hours = self.total_focus_minutes / 60
+
         rumps.alert(
             title="📊 番茄统计",
             message=(
-                f"🍅 完成番茄数: {self.completed_pomodoros}\n"
-                f"⏱ 累计专注: {self.total_focus_minutes} 分钟"
-                f" ({hours:.1f} 小时)"
+                f"📅 今日\n"
+                f"   番茄: {today_stats['pomodoros']} 个   "
+                f"专注: {today_stats['minutes']} 分钟\n\n"
+                f"📆 本周\n"
+                f"   番茄: {week_pomos} 个   "
+                f"专注: {week_minutes} 分钟\n\n"
+                f"🏆 累计\n"
+                f"   番茄: {self.completed_pomodoros} 个   "
+                f"专注: {self.total_focus_minutes} 分钟"
+                f" ({total_hours:.1f} 小时)"
             ),
         )
 

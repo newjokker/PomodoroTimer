@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "pomodoro-timer"
-version = "1.0.0"
+version = "1.1.0"
 description = "🍅 番茄时钟 — macOS 菜单栏 Pomodoro Timer"
 readme = "README.md"
 requires-python = ">=3.6"
@@ -23,11 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Office/Business :: Scheduling",
 ]
-urls = {
-    "Homepage": "https://github.com/newjokker/PomodoroTimer",
-    "Source": "https://github.com/newjokker/PomodoroTimer",
-    "Releases": "https://github.com/newjokker/PomodoroTimer/releases",
-}
+urls = {Homepage = "https://github.com/newjokker/PomodoroTimer", Source = "https://github.com/newjokker/PomodoroTimer", Releases = "https://github.com/newjokker/PomodoroTimer/releases"}
 
 # ─── 发布打包配置 ───
 # 用于构建 macOS .app 和 .dmg
@@ -38,13 +34,4 @@ iconfile = "icon.icns"
 frameworks = ["/opt/miniconda3/lib/libffi.8.dylib"]
 includes = ["ctypes"]
 packages = ["rumps"]
-plist = {
-    CFBundleName = "番茄时钟",
-    CFBundleDisplayName = "🍅 番茄时钟",
-    CFBundleIdentifier = "com.pomodoro.timer",
-    CFBundleVersion = "1.0.0",
-    CFBundleShortVersionString = "1.0.0",
-    CFBundleExecutable = "pomodoro_timer",
-    CFBundleDevelopmentRegion = "zh_CN",
-    LSUIElement = true,
-}
+plist = {CFBundleName = "番茄时钟", CFBundleDisplayName = "🍅 番茄时钟", CFBundleIdentifier = "com.pomodoro.timer", CFBundleVersion = "1.1.0", CFBundleShortVersionString = "1.1.0", CFBundleExecutable = "pomodoro_timer", CFBundleDevelopmentRegion = "zh_CN", LSUIElement = true}
