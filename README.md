@@ -3,10 +3,10 @@
 一款轻量、优雅的 macOS 菜单栏番茄工作法计时器，基于 Python 和 [rumps](https://github.com/jaredks/rumps) 构建。
 
 ![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/github/v/release/jokkerling/pomodoro-timer)
-![Downloads](https://img.shields.io/github/downloads/jokkerling/pomodoro-timer/total)
+![Version](https://img.shields.io/github/v/release/newjokker/PomodoroTimer)
+![Downloads](https://img.shields.io/github/downloads/newjokker/PomodoroTimer/total)
 
-> **⬇️ [下载最新版](https://github.com/jokkerling/pomodoro-timer/releases/latest)** — 直接下载 DMG 安装包
+> **⬇️ [下载最新版](https://github.com/newjokker/PomodoroTimer/releases/latest)** — 直接下载 DMG 安装包
 
 ---
 
@@ -155,7 +155,7 @@ python3 make_icon.py
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| [v1.0.0](https://github.com/jokkerling/pomodoro-timer/releases/tag/v1.0.0) | 2026-06-08 | 首发版 |
+| [v1.0.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.0.0) | 2026-06-08 | 首发版 |
 
 ---
 
@@ -180,4 +180,4 @@ MIT License
 
 ## 作者
 
-Created with 🍅 by jokkerling
+Created with 🍅 by [newjokker](https://github.com/newjokker)

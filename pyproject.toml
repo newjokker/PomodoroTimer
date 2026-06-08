@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.6"
 license = {text = "MIT"}
 authors = [
-    {name = "jokkerling"},
+    {name = "newjokker"},
 ]
 keywords = ["pomodoro", "timer", "macos", "menubar", "productivity"]
 classifiers = [
@@ -24,9 +24,9 @@ classifiers = [
     "Topic :: Office/Business :: Scheduling",
 ]
 urls = {
-    "Homepage": "https://github.com/jokkerling/pomodoro-timer",
-    "Source": "https://github.com/jokkerling/pomodoro-timer",
-    "Releases": "https://github.com/jokkerling/pomodoro-timer/releases",
+    "Homepage": "https://github.com/newjokker/PomodoroTimer",
+    "Source": "https://github.com/newjokker/PomodoroTimer",
+    "Releases": "https://github.com/newjokker/PomodoroTimer/releases",
 }
 
 # ─── 发布打包配置 ───

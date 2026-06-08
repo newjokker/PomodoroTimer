@@ -5,7 +5,7 @@
 
 __version__ = "1.0.0"
 __app_name__ = "🍅 番茄时钟"
-__repo_url__ = "https://github.com/jokkerling/pomodoro-timer"
+__repo_url__ = "https://github.com/newjokker/PomodoroTimer"
 
 用法:
     chmod +x pomodoro_timer.py

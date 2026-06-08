@@ -185,7 +185,7 @@ git tag v{版本号}
 git push origin v{版本号}
 
 # 5. 等待 Actions 完成
-#    访问: https://github.com/jokkerling/pomodoro-timer/actions
+#    访问: https://github.com/newjokker/PomodoroTimer/actions
 ```
 
 | 问题 | 方法 |
