@@ -6,7 +6,7 @@
 ![Version](https://img.shields.io/github/v/release/newjokker/PomodoroTimer)
 ![Downloads](https://img.shields.io/github/downloads/newjokker/PomodoroTimer/total)
 
-> **⬇️ [下载最新版](https://github.com/newjokker/PomodoroTimer/releases/latest)** — 直接下载 DMG 安装包
+> **⬇️ [下载最新版](https://github.com/newjokker/PomodoroTimer/raw/main/PomodoroTimer-v1.0.0.dmg)** — 直接下载 DMG 安装包
 
 ---
 
