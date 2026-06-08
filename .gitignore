@@ -1,0 +1,32 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+*.so
+
+# ─── macOS ───
+.DS_Store
+._*
+*.icns
+*.iconset/
+
+# ─── IDE / Editor ───
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─── Build Artifacts ───
+*.app/
+*.dmg
+
+# ─── Runtime Config ───
+.pomodoro_timer.json
+
+# ─── Virtual Environment ───
+venv/
+.env/

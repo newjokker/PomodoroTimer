@@ -1,0 +1,165 @@
+# 🍅 番茄时钟 — macOS 菜单栏 Pomodoro Timer
+
+一款轻量、优雅的 macOS 菜单栏番茄工作法计时器，基于 Python 和 [rumps](https://github.com/jaredks/rumps) 构建。
+
+![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## 功能特性
+
+### 核心计时
+- **标准番茄工作法**：25 分钟专注 + 5 分钟短休息
+- **长休息**：每完成 4 个番茄后自动进入 15 分钟长休息
+- **倒计时显示**：菜单栏实时显示剩余时间，并有 🍅 / ☕ 图标区分工作/休息状态
+
+### 操作控制
+| 操作 | 说明 |
+|------|------|
+| ▶ 开始专注 | 启动一个工作番茄 |
+| ⏸ 暂停 / ▶ 继续 | 随时暂停并恢复当前计时 |
+| ↺ 重置 | 重置到初始状态 |
+| ⏭ 跳过 | 跳过当前阶段（工作或休息） |
+
+### 个性化设置
+所有设置自动保存至 `~/.pomodoro_timer.json`，下次启动自动恢复：
+- **工作时长**：15 / 20 / 25 / 30 / 35 / 40 / 45 / 50 / 60 分钟可选
+- **短休息时长**：5 / 10 / 15 / 20 / 25 / 30 分钟可选
+- **长休息时长**：10 / 15 / 20 / 25 / 30 分钟可选
+- **自动开始休息**：番茄完成后是否自动进入休息倒计时
+
+### 数据统计
+- 记录完成的番茄总数
+- 累计专注时间（分钟 & 小时）
+- 所有数据持久化，重启不丢失
+
+### 提醒通知
+- 番茄完成 / 休息结束时弹出 macOS 原生通知
+- 同时播放系统提示音（Ping）
+
+---
+
+## 快速开始
+
+### 前置要求
+- macOS 操作系统
+- Python 3.6+
+- [rumps](https://github.com/jaredks/rumps) 库
+
+### 安装与运行
+
+```bash
+# 1. 安装依赖
+pip3 install rumps
+
+# 2. 直接运行（开发者模式）
+chmod +x pomodoro_timer.py
+python3 pomodoro_timer.py
+```
+
+番茄图标会出现在 macOS 菜单栏右上角，点击即可开始使用。
+
+### 打包为 macOS App
+
+```bash
+# 安装打包工具
+pip3 install py2app
+
+# 打包
+python3 setup.py py2app
+
+# 从 dist/ 目录运行
+open dist/番茄时钟.app
+```
+
+### 生成图标
+
+```bash
+python3 make_icon.py
+```
+
+会在项目根目录生成 `icon.icns` 应用图标。
+
+---
+
+## 项目结构
+
+```
+番茄时钟/
+├── pomodoro_timer.py    # 主程序 — 菜单栏番茄计时器
+├── setup.py             # py2app 打包配置
+├── make_icon.py         # 图标生成脚本（纯 Python，无需 PIL）
+├── icon.icns            # 生成的 macOS 应用图标
+├── .gitignore
+└── README.md
+```
+
+### 核心模块
+
+**`pomodoro_timer.py`** — 主程序入口，包含：
+- `PomodoroTimer` 类：继承 `rumps.App`，管理所有状态和 UI
+- 状态机：`IDLE` → `WORK` → `BREAK` → ... 循环
+- 配置持久化：JSON 文件自动读写
+- 系统通知：`rumps.notification` + `afplay` 音效
+
+**`setup.py`** — py2app 配置，支持打包为独立的 `.app` 包：
+- 无 Dock 图标（`LSUIElement: True`），仅菜单栏运行
+- 国际化设置为中文
+
+**`make_icon.py`** — 纯 Python 图标生成器，无需安装 PIL/Pillow：
+- 使用原始 PNG 编码生成番茄图标
+- 包含番茄主体、绿色叶蒂、高光反射
+
+---
+
+## 技术细节
+
+### 配置持久化
+- 文件位置：`~/.pomodoro_timer.json`
+- 保存内容：工作时长、休息时长、自动休息开关、统计数据
+- 写入时机：设置变更时（设置页面）、番茄完成时、退出应用时
+
+### 状态机
+
+```
+                ┌──────────┐
+                │   IDLE   │
+                └────┬─────┘
+                     │ ▶ 开始专注
+                     ↓
+           ┌─────────────────┐
+    ┌──────│     WORK (🍅)    │──────┐
+    │      └────────┬────────┘      │
+    │ 暂停          │ 完成          │ 跳过
+    ↓               ↓               ↓
+┌─────────┐  ┌──────────┐     ┌──────────┐
+│WORK_PAUSE│  │  BREAK   │     │  BREAK   │
+│  ⏸ 暂停  │  │  ☕ 休息  │     │  ☕ 休息  │
+└────┬────┘  └──────────┘     └──────────┘
+     │ ▶ 继续         │ 完成 / 跳过
+     ↓                 ↓
+  ┌─────────┐     ┌──────────┐
+  │  WORK   │     │  WORK    │  ← 回到工作
+  └─────────┘     └──────────┘
+```
+
+---
+
+## 依赖
+
+| 依赖 | 用途 |
+|------|------|
+| [rumps](https://github.com/jaredks/rumps) | macOS 菜单栏应用框架 |
+| [py2app](https://py2app.readthedocs.io/) | 打包为独立 macOS App（仅打包时需要） |
+
+---
+
+## 许可证
+
+MIT License
+
+---
+
+## 作者
+
+Created with 🍅 by a Pomodoro enthusiast.
