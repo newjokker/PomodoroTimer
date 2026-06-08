@@ -3,6 +3,10 @@
 🍅 番茄时钟 - macOS 菜单栏 Pomodoro Timer
 基于 rumps 实现的标准番茄工作法计时器
 
+__version__ = "1.0.0"
+__app_name__ = "🍅 番茄时钟"
+__repo_url__ = "https://github.com/jokkerling/pomodoro-timer"
+
 用法:
     chmod +x pomodoro_timer.py
     python3 pomodoro_timer.py
@@ -330,13 +334,14 @@ class PomodoroTimer(rumps.App):
     def show_about(self, _):
         """关于信息"""
         rumps.alert(
-            title="🍅 番茄时钟 v1.1",
+            title=f"🍅 番茄时钟 v{__version__}",
             message=(
                 "macOS 菜单栏番茄工作法计时器\n\n"
                 f"标准: {DEFAULT_WORK}min 工作 — {DEFAULT_SHORT_BREAK}min 休息\n"
                 f"长休: 每 {POMODOROS_UNTIL_LONG_BREAK} 个番茄后 {DEFAULT_LONG_BREAK}min\n\n"
                 "基于 Python rumps 构建\n"
-                "设置自动保存至 ~/.pomodoro_timer.json"
+                "设置自动保存至 ~/.pomodoro_timer.json\n\n"
+                f"版本: v{__version__}"
             ),
         )
 

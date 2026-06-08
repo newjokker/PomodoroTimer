@@ -1,0 +1,61 @@
+# .github/workflows/release.yml
+# 当推送新 Git 标签 (v*) 时，自动构建并发布 Release
+#
+# 用法:
+#   1. git tag v1.0.0
+#   2. git push origin v1.0.0
+#   → Actions 自动构建 .app + .dmg 并创建 Release
+
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip3 install rumps py2app
+
+      - name: Generate icon
+        run: python3 make_icon.py
+
+      - name: Build .app
+        run: python3 setup.py py2app
+
+      - name: Build .dmg
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          APP_NAME="番茄时钟"
+          hdiutil create -size 200m -fs HFS+ -type UDIF -volname "$APP_NAME" /tmp/template.dmg
+          hdiutil attach -nobrowse -owners off /tmp/template.dmg
+          ditto "dist/$APP_NAME.app" "/Volumes/$APP_NAME/$APP_NAME.app"
+          ln -s /Applications "/Volumes/$APP_NAME/Applications"
+          cp icon.icns "/Volumes/$APP_NAME/.VolumeIcon.icns"
+          /usr/bin/SetFile -a C "/Volumes/$APP_NAME"
+          hdiutil detach "/Volumes/$APP_NAME"
+          hdiutil convert /tmp/template.dmg -format UDZO -ov -o "$APP_NAME-$VERSION.dmg"
+          rm -f /tmp/template.dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "v${{ github.ref_name }}"
+          body_path: CHANGELOG.md
+          files: |
+            番茄时钟-*.dmg
+          generate_release_notes: true

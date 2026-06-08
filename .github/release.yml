@@ -1,0 +1,24 @@
+# .github/release.yml
+# 控制 GitHub Release 页面的自动生成标题
+
+changelog:
+  categories:
+    - title: 🚀 新功能
+      labels:
+        - enhancement
+        - feature
+    - title: 🐛 Bug 修复
+      labels:
+        - bug
+        - fix
+    - title: 📝 文档
+      labels:
+        - documentation
+    - title: 🔧 内部改进
+      labels:
+        - refactor
+        - chore
+        - ci
+    - title: 其他
+      labels:
+        - "*"

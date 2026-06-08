@@ -9,7 +9,7 @@ APP = ["pomodoro_timer.py"]
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": False,
-    "iconfile": "icon.icns",  # 将使用默认图标，后续可替换
+    "iconfile": "icon.icns",
     "plist": {
         "CFBundleName": "番茄时钟",
         "CFBundleDisplayName": "🍅 番茄时钟",
@@ -22,6 +22,10 @@ OPTIONS = {
         "LSUIElement": True,  # 无 Dock 图标，仅菜单栏
     },
     "packages": ["rumps"],
+    # 添加 libffi 依赖（_ctypes 需要）
+    "frameworks": ["/opt/miniconda3/lib/libffi.8.dylib"],
+    "includes": ["ctypes"],
+    "dylib_excludes": [],
 }
 
 setup(

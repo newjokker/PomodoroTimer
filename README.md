@@ -3,6 +3,10 @@
 一款轻量、优雅的 macOS 菜单栏番茄工作法计时器，基于 Python 和 [rumps](https://github.com/jaredks/rumps) 构建。
 
 ![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green)
+![Version](https://img.shields.io/github/v/release/jokkerling/pomodoro-timer)
+![Downloads](https://img.shields.io/github/downloads/jokkerling/pomodoro-timer/total)
+
+> **⬇️ [下载最新版](https://github.com/jokkerling/pomodoro-timer/releases/latest)** — 直接下载 DMG 安装包
 
 ---
 
@@ -145,12 +149,26 @@ python3 make_icon.py
 
 ---
 
-## 依赖
+## 版本历史
 
-| 依赖 | 用途 |
-|------|------|
-| [rumps](https://github.com/jaredks/rumps) | macOS 菜单栏应用框架 |
-| [py2app](https://py2app.readthedocs.io/) | 打包为独立 macOS App（仅打包时需要） |
+详见 [CHANGELOG.md](CHANGELOG.md)
+
+| 版本 | 日期 | 说明 |
+|------|------|------|
+| [v1.0.0](https://github.com/jokkerling/pomodoro-timer/releases/tag/v1.0.0) | 2026-06-08 | 首发版 |
+
+---
+
+## 构建
+
+从源码构建 .app / .dmg，参考 [BUILD.md](BUILD.md)。
+
+```bash
+make install    # 安装依赖
+make app        # 构建 .app
+make dmg        # 构建 DMG
+make release    # 打标签 + 构建 DMG
+```
 
 ---
 
@@ -162,4 +180,4 @@ MIT License
 
 ## 作者
 
-Created with 🍅 by a Pomodoro enthusiast.
+Created with 🍅 by jokkerling
