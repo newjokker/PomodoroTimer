@@ -19,7 +19,7 @@
 """
 
 # ── 版本信息 ──
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __app_name__ = "🍅 番茄时钟"
 __repo_url__ = "https://github.com/newjokker/PomodoroTimer"
 
@@ -236,10 +236,25 @@ class PomodoroTimer(rumps.App):
             daily["pomodoros"] += 1
             daily["minutes"] += actual_minutes
             self._notify("🎉 番茄完成！", f"已完成 {self.completed_pomodoros} 个番茄")
+            # ── 弹窗提醒（强制用户确认） ──
+            is_long = self.completed_pomodoros % POMODOROS_UNTIL_LONG_BREAK == 0
+            break_min = self.long_break_minutes if is_long else self.short_break_minutes
+            rumps.alert(
+                title="🎉 番茄完成！",
+                message=(
+                    f"已完成 {self.completed_pomodoros} 个番茄，专注 {actual_minutes} 分钟\n"
+                    f"即将开始 {break_min} 分钟休息，好好放松一下！"
+                ),
+            )
             self._save_config()
             self._start_break()
         else:
             self._notify("☕ 休息结束", "准备开始新的番茄吧！")
+            # ── 弹窗提醒（强制用户确认） ──
+            rumps.alert(
+                title="☕ 休息结束",
+                message="休息结束，准备开始新的番茄吧！\n点击「好」开始专注工作",
+            )
             self._start_work()
 
     def _notify(self, title, subtitle):

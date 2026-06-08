@@ -31,3 +31,7 @@ releases/
 # ─── Virtual Environment ───
 venv/
 .env/
+.eggs/
+
+venv2/
+
