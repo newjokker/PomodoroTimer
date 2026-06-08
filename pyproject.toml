@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "pomodoro-timer"
-version = "1.3.0"
+version = "1.2.0"
 description = "🍅 番茄时钟 — macOS 菜单栏 Pomodoro Timer"
 readme = "README.md"
 requires-python = ">=3.6"
@@ -34,4 +34,4 @@ iconfile = "icon.icns"
 frameworks = ["/opt/miniconda3/lib/libffi.8.dylib"]
 includes = ["ctypes"]
 packages = ["rumps"]
-plist = {CFBundleName = "番茄时钟", CFBundleDisplayName = "🍅 番茄时钟", CFBundleIdentifier = "com.pomodoro.timer", CFBundleVersion = "1.3.0", CFBundleShortVersionString = "1.3.0", CFBundleExecutable = "pomodoro_timer", CFBundleDevelopmentRegion = "zh_CN", LSUIElement = true}
+plist = {CFBundleName = "番茄时钟", CFBundleDisplayName = "🍅 番茄时钟", CFBundleIdentifier = "com.pomodoro.timer", CFBundleVersion = "1.2.0", CFBundleShortVersionString = "1.2.0", CFBundleExecutable = "pomodoro_timer", CFBundleDevelopmentRegion = "zh_CN", LSUIElement = true}

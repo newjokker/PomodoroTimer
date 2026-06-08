@@ -15,13 +15,11 @@
     - 完成时系统通知 + 提示音
     - 统计数据追踪（每日/每周/累计）
     - 静音模式
-    - 完成时弹窗开关（可关闭阻塞式弹窗）
-    - 休息结束自动开始工作
     - 设置持久化（重启后保留）
 """
 
 # ── 版本信息 ──
-__version__ = "1.3.0"
+__version__ = "1.2.0"
 __app_name__ = "🍅 番茄时钟"
 __repo_url__ = "https://github.com/newjokker/PomodoroTimer"
 
@@ -65,8 +63,6 @@ class PomodoroTimer(rumps.App):
         self.total_focus_minutes = config.get("total_focus_minutes", 0)
         self.auto_break = config.get("auto_break", True)
         self.mute = config.get("mute", False)
-        self.show_alert = config.get("show_alert", True)
-        self.auto_resume = config.get("auto_resume", False)
         self._daily_stats = config.get("daily", {})
 
         # ── 更新菜单栏标题（反映加载后的配置值） ──
@@ -97,8 +93,6 @@ class PomodoroTimer(rumps.App):
             "long_break_minutes": self.long_break_minutes,
             "auto_break": self.auto_break,
             "mute": self.mute,
-            "show_alert": self.show_alert,
-            "auto_resume": self.auto_resume,
             "completed_pomodoros": self.completed_pomodoros,
             "total_focus_minutes": self.total_focus_minutes,
             "daily": self._daily_stats,
@@ -165,16 +159,6 @@ class PomodoroTimer(rumps.App):
             callback=self.toggle_mute,
         )
         self.settings_menu.add(self.mute_item)
-        self.alert_item = rumps.MenuItem(
-            f"🎯 完成时弹窗 {'✓' if self.show_alert else '✗'}",
-            callback=self.toggle_alert,
-        )
-        self.settings_menu.add(self.alert_item)
-        self.auto_resume_item = rumps.MenuItem(
-            f"🔁 休息后自动工作 {'✓' if self.auto_resume else '✗'}",
-            callback=self.toggle_auto_resume,
-        )
-        self.settings_menu.add(self.auto_resume_item)
 
         # ── 组装主菜单 ──
         self.menu = [
@@ -252,34 +236,26 @@ class PomodoroTimer(rumps.App):
             daily["pomodoros"] += 1
             daily["minutes"] += actual_minutes
             self._notify("🎉 番茄完成！", f"已完成 {self.completed_pomodoros} 个番茄")
-            # ── 弹窗提醒（可关闭） ──
+            # ── 弹窗提醒（强制用户确认） ──
             is_long = self.completed_pomodoros % POMODOROS_UNTIL_LONG_BREAK == 0
             break_min = self.long_break_minutes if is_long else self.short_break_minutes
-            if self.show_alert:
-                rumps.alert(
-                    title="🎉 番茄完成！",
-                    message=(
-                        f"已完成 {self.completed_pomodoros} 个番茄，专注 {actual_minutes} 分钟\n"
-                        f"即将开始 {break_min} 分钟休息，好好放松一下！"
-                    ),
-                )
+            rumps.alert(
+                title="🎉 番茄完成！",
+                message=(
+                    f"已完成 {self.completed_pomodoros} 个番茄，专注 {actual_minutes} 分钟\n"
+                    f"即将开始 {break_min} 分钟休息，好好放松一下！"
+                ),
+            )
             self._save_config()
             self._start_break()
         else:
             self._notify("☕ 休息结束", "准备开始新的番茄吧！")
-            # ── 弹窗提醒（可关闭） ──
-            if self.show_alert:
-                rumps.alert(
-                    title="☕ 休息结束",
-                    message="休息结束，准备开始新的番茄吧！\n点击「好」开始专注工作",
-                )
-            if self.auto_resume:
-                self._start_work()
-            else:
-                self.state = "IDLE"
-                self.seconds_left = self.work_minutes * 60
-                self.start_item.title = "▶ 开始专注"
-                self._update_title()
+            # ── 弹窗提醒（强制用户确认） ──
+            rumps.alert(
+                title="☕ 休息结束",
+                message="休息结束，准备开始新的番茄吧！\n点击「好」开始专注工作",
+            )
+            self._start_work()
 
     def _notify(self, title, subtitle):
         """发送系统通知（静音模式下跳过音效）"""
@@ -374,18 +350,6 @@ class PomodoroTimer(rumps.App):
         """切换静音模式"""
         self.mute = not self.mute
         sender.title = f"🔇 静音模式 {'✓' if self.mute else '✗'}"
-        self._save_config()
-
-    def toggle_alert(self, sender):
-        """切换完成时弹窗"""
-        self.show_alert = not self.show_alert
-        sender.title = f"🎯 完成时弹窗 {'✓' if self.show_alert else '✗'}"
-        self._save_config()
-
-    def toggle_auto_resume(self, sender):
-        """切换休息后自动开始工作"""
-        self.auto_resume = not self.auto_resume
-        sender.title = f"🔁 休息后自动工作 {'✓' if self.auto_resume else '✗'}"
         self._save_config()
 
     def _get_week_stats(self):
