@@ -14,12 +14,15 @@
     - 暂停/继续/跳过
     - 完成时系统通知 + 提示音
     - 统计数据追踪（每日/每周/累计）
+    - 任务标签：选择任务→番茄完成自动统计→按任务聚合查看
     - 静音模式
+    - 完成时弹窗开关（可关闭阻塞式弹窗）
+    - 休息结束自动开始工作
     - 设置持久化（重启后保留）
 """
 
 # ── 版本信息 ──
-__version__ = "1.2.0"
+__version__ = "1.4.0"
 __app_name__ = "🍅 番茄时钟"
 __repo_url__ = "https://github.com/newjokker/PomodoroTimer"
 
@@ -63,7 +66,24 @@ class PomodoroTimer(rumps.App):
         self.total_focus_minutes = config.get("total_focus_minutes", 0)
         self.auto_break = config.get("auto_break", True)
         self.mute = config.get("mute", False)
+        self.show_alert = config.get("show_alert", True)
+        self.auto_resume = config.get("auto_resume", False)
         self._daily_stats = config.get("daily", {})
+
+        # ── 任务标签 ──
+        raw_tasks = config.get("tasks", {})
+        self.tasks = {}
+        for name, data in raw_tasks.items():
+            if isinstance(data, dict):
+                self.tasks[name] = {
+                    "pomodoros": data.get("pomodoros", 0),
+                    "minutes": data.get("minutes", 0),
+                }
+            else:
+                self.tasks[name] = {"pomodoros": 0, "minutes": 0}
+        self.current_task = config.get("current_task", None)
+        if self.current_task and self.current_task not in self.tasks:
+            self.current_task = None
 
         # ── 更新菜单栏标题（反映加载后的配置值） ──
         self.title = f"🍅 {self._fmt()}"
@@ -93,9 +113,13 @@ class PomodoroTimer(rumps.App):
             "long_break_minutes": self.long_break_minutes,
             "auto_break": self.auto_break,
             "mute": self.mute,
+            "show_alert": self.show_alert,
+            "auto_resume": self.auto_resume,
             "completed_pomodoros": self.completed_pomodoros,
             "total_focus_minutes": self.total_focus_minutes,
             "daily": self._daily_stats,
+            "tasks": self.tasks,
+            "current_task": self.current_task,
         }
         try:
             tmp = tempfile.NamedTemporaryFile(
@@ -121,6 +145,9 @@ class PomodoroTimer(rumps.App):
         self.start_item = rumps.MenuItem("▶ 开始专注", callback=self.toggle)
         self.reset_item = rumps.MenuItem("↺ 重置", callback=self.reset)
         self.skip_item = rumps.MenuItem("⏭ 跳过", callback=self.skip)
+
+        # ── 任务标签 ──
+        self._rebuild_task_menu()
 
         # ── 设置子菜单 ──
         self.settings_menu = rumps.MenuItem("⚙ 设置")
@@ -159,12 +186,24 @@ class PomodoroTimer(rumps.App):
             callback=self.toggle_mute,
         )
         self.settings_menu.add(self.mute_item)
+        self.alert_item = rumps.MenuItem(
+            f"🎯 完成时弹窗 {'✓' if self.show_alert else '✗'}",
+            callback=self.toggle_alert,
+        )
+        self.settings_menu.add(self.alert_item)
+        self.auto_resume_item = rumps.MenuItem(
+            f"🔁 休息后自动工作 {'✓' if self.auto_resume else '✗'}",
+            callback=self.toggle_auto_resume,
+        )
+        self.settings_menu.add(self.auto_resume_item)
 
         # ── 组装主菜单 ──
         self.menu = [
             self.start_item,
             self.reset_item,
             self.skip_item,
+            None,
+            self.task_item,
             None,
             self.settings_menu,
             None,
@@ -173,6 +212,152 @@ class PomodoroTimer(rumps.App):
             None,
             rumps.MenuItem("🚪 退出", callback=self.quit_app),
         ]
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    #  任务标签子系统
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    def _rebuild_task_menu(self):
+        """重建任务子菜单"""
+        if hasattr(self, "task_item"):
+            # 清除旧子菜单项
+            for key in list(self.task_item.keys()):
+                del self.task_item[key]
+            label = f"📋 任务: {self.current_task}" if self.current_task else "📋 任务: 未选择"
+            self.task_item.title = label
+        else:
+            label = f"📋 任务: {self.current_task}" if self.current_task else "📋 任务: 未选择"
+            self.task_item = rumps.MenuItem(label)
+
+        tasks = sorted(self.tasks.keys()) if self.tasks else []
+        if tasks:
+            for name in tasks:
+                data = self.tasks[name]
+                checked = "✓ " if name == self.current_task else "  "
+                item = rumps.MenuItem(
+                    f"{checked}{name}  ({data['pomodoros']}🍅)",
+                    callback=self._on_select_task,
+                )
+                item._task_name = name
+                self.task_item.add(item)
+            self.task_item.add(rumps.MenuItem(None))
+
+        mgmt_item = rumps.MenuItem("✚ 新建任务", callback=self._new_task)
+        self.task_item.add(mgmt_item)
+
+        if self.current_task:
+            rename_item = rumps.MenuItem("✏ 重命名任务", callback=self._rename_task)
+            self.task_item.add(rename_item)
+            del_item = rumps.MenuItem("✖ 删除任务", callback=self._delete_task)
+            self.task_item.add(del_item)
+
+        if self.tasks:
+            self.task_item.add(rumps.MenuItem(None))
+            stats_item = rumps.MenuItem("📊 任务统计", callback=self.show_task_stats)
+            self.task_item.add(stats_item)
+
+    def _on_select_task(self, sender):
+        """选择/取消任务标签"""
+        name = sender._task_name
+        if name == self.current_task:
+            self.current_task = None
+        else:
+            self.current_task = name
+        self._rebuild_task_menu()
+        self._save_config()
+
+    def _new_task(self, _):
+        """新建任务"""
+        if len(self.tasks) >= 20:
+            rumps.alert(title="提示", message="最多支持 20 个任务标签")
+            return
+
+        win = rumps.Window(
+            title="新建任务",
+            message="请输入任务名称：",
+            default_text="",
+            cancel=True,
+        )
+        response = win.run()
+        if response.clicked:
+            name = response.text.strip()
+            if not name:
+                rumps.alert(title="提示", message="任务名称不能为空")
+                return
+            if name in self.tasks:
+                rumps.alert(title="提示", message=f"任务「{name}」已存在")
+                return
+            self.tasks[name] = {"pomodoros": 0, "minutes": 0}
+            self.current_task = name
+            self._rebuild_task_menu()
+            self._save_config()
+
+    def _rename_task(self, _):
+        """重命名当前任务"""
+        if not self.current_task:
+            return
+        win = rumps.Window(
+            title="重命名任务",
+            message=f"当前: {self.current_task}",
+            default_text=self.current_task,
+            cancel=True,
+        )
+        response = win.run()
+        if response.clicked:
+            new_name = response.text.strip()
+            if not new_name:
+                rumps.alert(title="提示", message="任务名称不能为空")
+                return
+            if new_name == self.current_task:
+                return
+            if new_name in self.tasks:
+                rumps.alert(title="提示", message=f"任务「{new_name}」已存在")
+                return
+            data = self.tasks.pop(self.current_task)
+            self.tasks[new_name] = data
+            self.current_task = new_name
+            self._rebuild_task_menu()
+            self._save_config()
+
+    def _delete_task(self, _):
+        """删除当前任务"""
+        if not self.current_task:
+            return
+        result = rumps.alert(
+            title="确认删除",
+            message=f"确定删除任务「{self.current_task}」及其统计数据？",
+            ok="删除",
+            cancel="取消",
+        )
+        if result:
+            del self.tasks[self.current_task]
+            self.current_task = None
+            self._rebuild_task_menu()
+            self._save_config()
+
+    def show_task_stats(self, _):
+        """显示按任务聚合的统计"""
+        if not self.tasks:
+            rumps.alert(title="📋 任务统计", message="暂无任务数据\n在「任务」菜单中新建任务后开始记录吧！")
+            return
+
+        lines = []
+        sorted_tasks = sorted(self.tasks.items(), key=lambda x: -x[1]["pomodoros"])
+        for name, data in sorted_tasks:
+            mark = "▶ " if name == self.current_task else "  "
+            m = data["minutes"]
+            lines.append(f"{mark}{name}")
+            lines.append(f"      {data['pomodoros']}🍅  ·  {m}min  ({m/60:.1f}h)")
+
+        total_pomos = sum(d["pomodoros"] for d in self.tasks.values())
+        total_mins = sum(d["minutes"] for d in self.tasks.values())
+
+        msg = (
+            "\n".join(lines)
+            + f"\n\n── 合计 ──\n"
+            f"   {total_pomos}🍅  ·  {total_mins}min  ({total_mins/60:.1f}h)"
+        )
+        rumps.alert(title="📋 任务统计", message=msg)
 
     def setup_duration_submenu(self, parent, current_value, attr_name, values):
         """为子菜单添加时长选项列表"""
@@ -235,27 +420,40 @@ class PomodoroTimer(rumps.App):
             daily = self._daily_stats.setdefault(today, {"pomodoros": 0, "minutes": 0})
             daily["pomodoros"] += 1
             daily["minutes"] += actual_minutes
+            # ── 任务标签统计 ──
+            if self.current_task and self.current_task in self.tasks:
+                self.tasks[self.current_task]["pomodoros"] += 1
+                self.tasks[self.current_task]["minutes"] += actual_minutes
             self._notify("🎉 番茄完成！", f"已完成 {self.completed_pomodoros} 个番茄")
-            # ── 弹窗提醒（强制用户确认） ──
+            # ── 弹窗提醒（可关闭） ──
             is_long = self.completed_pomodoros % POMODOROS_UNTIL_LONG_BREAK == 0
             break_min = self.long_break_minutes if is_long else self.short_break_minutes
-            rumps.alert(
-                title="🎉 番茄完成！",
-                message=(
-                    f"已完成 {self.completed_pomodoros} 个番茄，专注 {actual_minutes} 分钟\n"
-                    f"即将开始 {break_min} 分钟休息，好好放松一下！"
-                ),
-            )
+            if self.show_alert:
+                rumps.alert(
+                    title="🎉 番茄完成！",
+                    message=(
+                        f"已完成 {self.completed_pomodoros} 个番茄，专注 {actual_minutes} 分钟\n"
+                        f"即将开始 {break_min} 分钟休息，好好放松一下！"
+                    ),
+                )
             self._save_config()
+            self._rebuild_task_menu()
             self._start_break()
         else:
             self._notify("☕ 休息结束", "准备开始新的番茄吧！")
-            # ── 弹窗提醒（强制用户确认） ──
-            rumps.alert(
-                title="☕ 休息结束",
-                message="休息结束，准备开始新的番茄吧！\n点击「好」开始专注工作",
-            )
-            self._start_work()
+            # ── 弹窗提醒（可关闭） ──
+            if self.show_alert:
+                rumps.alert(
+                    title="☕ 休息结束",
+                    message="休息结束，准备开始新的番茄吧！\n点击「好」开始专注工作",
+                )
+            if self.auto_resume:
+                self._start_work()
+            else:
+                self.state = "IDLE"
+                self.seconds_left = self.work_minutes * 60
+                self.start_item.title = "▶ 开始专注"
+                self._update_title()
 
     def _notify(self, title, subtitle):
         """发送系统通知（静音模式下跳过音效）"""
@@ -350,6 +548,18 @@ class PomodoroTimer(rumps.App):
         """切换静音模式"""
         self.mute = not self.mute
         sender.title = f"🔇 静音模式 {'✓' if self.mute else '✗'}"
+        self._save_config()
+
+    def toggle_alert(self, sender):
+        """切换完成时弹窗"""
+        self.show_alert = not self.show_alert
+        sender.title = f"🎯 完成时弹窗 {'✓' if self.show_alert else '✗'}"
+        self._save_config()
+
+    def toggle_auto_resume(self, sender):
+        """切换休息后自动开始工作"""
+        self.auto_resume = not self.auto_resume
+        sender.title = f"🔁 休息后自动工作 {'✓' if self.auto_resume else '✗'}"
         self._save_config()
 
     def _get_week_stats(self):

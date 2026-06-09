@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green) ![Arch](https://img.shields.io/badge/arch-arm64-brightgreen)
 
 
-> **⬇️ [下载最新版 v1.1.0](https://github.com/newjokker/PomodoroTimer/releases)** — 原生 ARM64，支持 Apple Silicon
+> **⬇️ [下载最新版 v1.4.0](https://github.com/newjokker/PomodoroTimer/releases)** — 原生 ARM64，支持 Apple Silicon
 
 ---
 
@@ -31,6 +31,9 @@
 - **长休息时长**：10 / 15 / 20 / 25 / 30 分钟可选
 - **自动开始休息**：番茄完成后是否自动进入休息倒计时
 - **静音模式**：开启后仅保留通知，不播放提示音
+- **完成时弹窗**：可关闭阻塞式弹窗，仅保留系统通知
+- **休息后自动工作**：休息结束自动进入下一个番茄
+- **任务标签**：选择任务→番茄完成自动统计→按任务聚合查看
 
 ### 数据统计
 - 📅 **今日统计**：今日番茄数 + 专注时长
@@ -41,6 +44,12 @@
 ### 提醒通知
 - 番茄完成 / 休息结束时弹出 macOS 原生通知
 - 同时播放系统提示音（Ping）
+
+### 任务标签
+- 开始番茄前选择一个任务标签（如「写论文」「阅代码」）
+- 番茄完成时自动累加到对应任务
+- 查看按任务聚合的统计（番茄数 + 专注时长）
+- 支持新建、重命名、删除任务，最多 20 个标签
 
 ---
 
@@ -161,8 +170,8 @@ python3 make_icon.py
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| [v1.1.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.1.0) | 2026-06-08 | ARM64 原生、按日统计、静音模式 |
-| [v1.0.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.0.0) | 2026-06-08 | 首发版 |
+| [v1.4.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.4.0) | 2026-06-09 | 任务标签、按任务统计 |
+| [v1.3.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.3.0) | 2026-06-08 | 弹窗开关、休息后自动工作 |
 
 ---
 
