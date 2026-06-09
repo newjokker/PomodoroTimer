@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3.6%2B-blue) ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey) ![License](https://img.shields.io/badge/license-MIT-green) ![Arch](https://img.shields.io/badge/arch-arm64-brightgreen)
 
 
-> **⬇️ [下载最新版 v1.4.0](https://github.com/newjokker/PomodoroTimer/releases)** — 原生 ARM64，支持 Apple Silicon
+> **⬇️ [下载最新版 v1.5.0](https://github.com/newjokker/PomodoroTimer/releases)** — 原生 ARM64，支持 Apple Silicon
 
 ---
 
@@ -50,6 +50,11 @@
 - 番茄完成时自动累加到对应任务
 - 查看按任务聚合的统计（番茄数 + 专注时长）
 - 支持新建、重命名、删除任务，最多 20 个标签
+
+### 检查更新
+- 菜单栏「🔄 检查更新」：通过 GitHub API 自动检测最新版本
+- 有新版本时显示当前 vs 最新版本 + 下载链接
+- 已是最新版时直接提示「已是最新版本 🎉」
 
 ---
 
@@ -170,8 +175,8 @@ python3 make_icon.py
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| [v1.5.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.5.0) | 2026-06-09 | 检查更新（GitHub API） |
 | [v1.4.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.4.0) | 2026-06-09 | 任务标签、按任务统计 |
-| [v1.3.0](https://github.com/newjokker/PomodoroTimer/releases/tag/v1.3.0) | 2026-06-08 | 弹窗开关、休息后自动工作 |
 
 ---
 

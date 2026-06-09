@@ -18,13 +18,15 @@
     - 静音模式
     - 完成时弹窗开关（可关闭阻塞式弹窗）
     - 休息结束自动开始工作
+    - 检查更新：通过 GitHub API 自动检查最新版本
     - 设置持久化（重启后保留）
 """
 
 # ── 版本信息 ──
-__version__ = "1.4.0"
+__version__ = "1.5.0"
 __app_name__ = "🍅 番茄时钟"
 __repo_url__ = "https://github.com/newjokker/PomodoroTimer"
+__github_api__ = "https://api.github.com/repos/newjokker/PomodoroTimer/releases/latest"
 
 import rumps
 import subprocess
@@ -32,6 +34,8 @@ import json
 import os
 import datetime
 import tempfile
+import urllib.request
+import urllib.error
 
 # ═══════════════════════════════════════
 #  默认配置
@@ -198,6 +202,7 @@ class PomodoroTimer(rumps.App):
         self.settings_menu.add(self.auto_resume_item)
 
         # ── 组装主菜单 ──
+        self.update_item = rumps.MenuItem("🔄 检查更新", callback=self.check_update)
         self.menu = [
             self.start_item,
             self.reset_item,
@@ -208,6 +213,7 @@ class PomodoroTimer(rumps.App):
             self.settings_menu,
             None,
             rumps.MenuItem("📊 统计", callback=self.show_stats),
+            self.update_item,
             rumps.MenuItem("❓ 关于", callback=self.show_about),
             None,
             rumps.MenuItem("🚪 退出", callback=self.quit_app),
@@ -611,6 +617,81 @@ class PomodoroTimer(rumps.App):
                 f"版本: v{__version__}"
             ),
         )
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    #  检查更新
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    @staticmethod
+    def _compare_versions(v1, v2):
+        """比较两个语义化版本号，v1 > v2 返回 1，相等返回 0，小于返回 -1"""
+        def parse(v):
+            v = v.lstrip("v")
+            parts = v.split(".")
+            return tuple(int(x) if x.isdigit() else 0 for x in parts)
+        v1t, v2t = parse(v1), parse(v2)
+        if v1t > v2t:
+            return 1
+        if v1t < v2t:
+            return -1
+        return 0
+
+    def check_update(self, _):
+        """检查 GitHub 最新 Release 版本"""
+        self.update_item.title = "🔄 检查中…"
+        try:
+            req = urllib.request.Request(
+                __github_api__,
+                headers={
+                    "User-Agent": f"PomodoroTimer/{__version__}",
+                    "Accept": "application/vnd.github.v3+json",
+                },
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                latest_tag = data.get("tag_name", "").lstrip("v")
+                release_url = data.get("html_url", f"{__repo_url__}/releases")
+
+            if not latest_tag:
+                rumps.alert(
+                    title="🔄 检查更新",
+                    message="未能获取版本信息，请稍后重试",
+                )
+                return
+
+            cmp = self._compare_versions(latest_tag, __version__)
+            if cmp > 0:
+                rumps.alert(
+                    title="🔄 发现新版本！",
+                    message=(
+                        f"当前版本: v{__version__}\n"
+                        f"最新版本: v{latest_tag}\n\n"
+                        "有新版本可用，请前往 GitHub Releases 下载：\n"
+                        f"{release_url}"
+                    ),
+                )
+            else:
+                rumps.alert(
+                    title="🔄 检查更新",
+                    message=f"当前版本: v{__version__}\n已是最新版本 🎉",
+                )
+        except urllib.error.URLError:
+            rumps.alert(
+                title="🔄 检查更新",
+                message="网络连接失败，请检查网络后重试",
+            )
+        except json.JSONDecodeError:
+            rumps.alert(
+                title="🔄 检查更新",
+                message="解析版本响应失败，请稍后重试",
+            )
+        except Exception as e:
+            rumps.alert(
+                title="🔄 检查更新",
+                message=f"检查失败: {e}",
+            )
+        finally:
+            self.update_item.title = "🔄 检查更新"
 
     def quit_app(self, _):
         """退出应用前保存配置"""
